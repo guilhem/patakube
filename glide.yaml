@@ -1,0 +1,8 @@
+package: github.com/guilhem/patakube
+import:
+- package: github.com/pressly/chi
+  version: ~1.0.0
+  subpackages:
+  - middleware
+- package: github.com/spf13/cobra
+- package: github.com/spf13/viper
