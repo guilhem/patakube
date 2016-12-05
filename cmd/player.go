@@ -19,14 +19,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"encoding/json"
 
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
-  "github.com/spf13/viper"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // playerCmd represents the player command
@@ -46,8 +47,9 @@ func init() {
 	RootCmd.AddCommand(playerCmd)
 
 	playerCmd.PersistentFlags().String("target", "target.patakube.svc.cluster.local", "target to shoot")
+	viper.BindPFlag("target", playerCmd.PersistentFlags().Lookup("target"))
 
-	playerCmd.Flags().BoolP("patator", "p", false, "Use a patator")
+	playerCmd.Flags().Bool("patator", false, "Use a patator")
 	viper.BindPFlag("patator", playerCmd.Flags().Lookup("patator"))
 
 	playerCmd.Flags().Int("patator-port", 8081, "Port to reach patator")
@@ -84,9 +86,8 @@ func player(cmd *cobra.Command, args []string) {
 			json.NewEncoder(b).Encode(player)
 			target := "http://" + viper.GetString("target")
 			if viper.GetBool("patator") {
-				target = "http://localhost:" + viper.GetString("patator-port")
+				target = "http://localhost:" + strconv.Itoa(viper.GetInt("patator-port"))
 			}
-			//fmt.Printf("Target: " + target)
 			res, err := http.Post(target, "application/json", b)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
@@ -103,5 +104,5 @@ func player(cmd *cobra.Command, args []string) {
 		})
 	})
 
-	http.ListenAndServe(":8080", r)
+	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
 }

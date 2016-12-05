@@ -18,12 +18,14 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/patrickmn/go-cache"
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // targetCmd represents the target command
@@ -106,5 +108,5 @@ func target(cmd *cobra.Command, args []string) {
 		w.Write([]byte("Hit"))
 	})
 
-	http.ListenAndServe(":8082", r)
+	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
 }

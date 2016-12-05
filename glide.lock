@@ -1,5 +1,5 @@
-hash: eb246a29817b6b56261f3229ca686aad95aff00e2be78c307edf3b796195ba99
-updated: 2016-12-02T17:42:59.88602768+01:00
+hash: fe790d25294b650a0559883e507411a324e01243180b98644f39f6b103c93510
+updated: 2016-12-03T01:39:36.988163653+01:00
 imports:
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
@@ -16,10 +16,14 @@ imports:
   - json/token
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/kubernetes/client-go
+  version: 843f7c4f28b1f647f664f883697107d5c02c5acc
 - name: github.com/magiconair/properties
   version: 9c47895dc1ce54302908ab8a43385d1f5df2c11c
 - name: github.com/mitchellh/mapstructure
   version: f3009df150dadf309fdee4a54ed65c124afad715
+- name: github.com/patrickmn/go-cache
+  version: 1881a9bccb818787f68c52bfba648c6cf34c34fa
 - name: github.com/pelletier/go-buffruneio
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml

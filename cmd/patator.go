@@ -17,6 +17,7 @@ package cmd
 import (
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
@@ -27,13 +28,10 @@ import (
 // patatorCmd represents the patator command
 var patatorCmd = &cobra.Command{
 	Use:   "patator",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "A potato launcher",
+	Long: `This tool help you to improve aiming of your shoots.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Be careful, this tool can be quite capricious ;)`,
 	Run: patator,
 }
 
@@ -56,7 +54,7 @@ func patator(cmd *cobra.Command, args []string) {
 
 		w.Header().Set("patator", "true")
 
-		req, err := http.NewRequest("POST", "http://" + viper.GetString("target"), r.Body)
+		req, err := http.NewRequest("POST", "http://"+viper.GetString("target"), r.Body)
 		req.Header.Set("patator", "true")
 		req.Header.Set("Content-Type", "application/json")
 
@@ -76,5 +74,5 @@ func patator(cmd *cobra.Command, args []string) {
 		w.Write(responseBody)
 	})
 
-	http.ListenAndServe(":8081", r)
+	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
 }
