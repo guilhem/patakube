@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: player
+  labels:
+    app: player
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: player
+    spec:
+      containers:
+      - name: player
+        image: patakube/player
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PATATOR
+          value: "true"
+        - name: NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        imagePullPolicy: Always
+      - name: patator
+        image: patakube/patator
+        ports:
+        - containerPort: 8081
+        imagePullPolicy: Always
