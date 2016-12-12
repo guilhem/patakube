@@ -21,14 +21,12 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
 )
 
-// fieldCmd represents the field command
-var fieldCmd = &cobra.Command{
-	Use:   "field",
+var trapCmd = &cobra.Command{
+	Use:   "trap",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -36,25 +34,14 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: field,
+	Run: trap,
 }
 
 func init() {
-	RootCmd.AddCommand(fieldCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// fieldCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// fieldCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
+	RootCmd.AddCommand(trapCmd)
 }
 
-func field(cmd *cobra.Command, args []string) {
+func trap(cmd *cobra.Command, args []string) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
