@@ -76,8 +76,10 @@ func field(cmd *cobra.Command, args []string) {
 		select {
 		case <-ticker.C:
 			for _, namespace := range namespaces.Items {
-				http.Post("http://player."+namespace.ObjectMeta.Name+".svc.cluster.local/potato", "", nil)
-				fmt.Printf("Potato to %s\n", namespace.ObjectMeta.Name)
+				go func(namespace string) {
+					http.Post("http://player."+namespace+".svc.cluster.local/potato", "", nil)
+					fmt.Printf("Potato to %s\n", namespace)
+				}(namespace.ObjectMeta.Name)
 			}
 		}
 	}
