@@ -13,19 +13,19 @@ spec:
     spec:
       containers:
       - name: player
-        image: patakube/player
+        image: guilhem/patakube
+        args: ["player", "--patator"]
         ports:
         - containerPort: 8080
         env:
-        - name: PATATOR
-          value: "true"
         - name: NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
         imagePullPolicy: Always
       - name: patator
-        image: patakube/patator
+        image: guilhem/patakube
+        args: ["player", "patator", "--port=8081"]
         ports:
         - containerPort: 8081
         imagePullPolicy: Always

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: field
+spec:
+  containers:
+    - name: field
+      image: guilhem/patakube
+      args: ["field"]
+      imagePullPolicy: Always
