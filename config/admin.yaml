@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: trap
+spec:
+  replicas: 1
+  selector:
+    app: trap
+  template:
+    metadata:
+      name: trap
+      labels:
+        app: trap
+    spec:
+      containers:
+        - name: trap
+          image: guilhem/patakube
+          args: ["trap"]
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: target
+spec:
+  replicas: 1
+  selector:
+    app: target
+  template:
+    metadata:
+      name: target
+      labels:
+        app: target
+    spec:
+      containers:
+        - name: target
+          image: guilhem/patakube
+          args: ["target"]
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: target
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: target
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: configurator
+spec:
+  replicas: 1
+  selector:
+    app: configurator
+  template:
+    metadata:
+      name: configurator
+      labels:
+        app: configurator
+    spec:
+      containers:
+        - name: configurator
+          image: guilhem/patakube
+          args: ["configurator"]
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: configurator
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: configurator
