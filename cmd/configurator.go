@@ -67,9 +67,11 @@ func configurator(cmd *cobra.Command, args []string) {
 
 	r.Get("/:playerID", func(w http.ResponseWriter, r *http.Request) {
 		playerID := chi.URLParam(r, "playerID")
+
 		ns := v1.Namespace{
 			ObjectMeta: v1.ObjectMeta{
-				Name: playerID,
+				Name:   "player-" + playerID,
+				Labels: map[string]string{"player": "true"},
 			},
 		}
 		if _, err := clientset.Core().Namespaces().Create(&ns); err != nil {

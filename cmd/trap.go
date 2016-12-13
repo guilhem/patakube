@@ -53,7 +53,7 @@ func trap(cmd *cobra.Command, args []string) {
 		panic(err.Error())
 	}
 
-	namespaces, err := clientset.Core().Namespaces().List(v1.ListOptions{})
+	namespaces, err := clientset.Core().Namespaces().List(v1.ListOptions{LabelSelector: "player"})
 	if err != nil {
 		panic(err.Error())
 	}
