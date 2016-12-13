@@ -61,6 +61,10 @@ func configurator(cmd *cobra.Command, args []string) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("please provide a player name"))
+	})
+
 	r.Get("/:playerID", func(w http.ResponseWriter, r *http.Request) {
 		playerID := chi.URLParam(r, "playerID")
 		ns := v1.Namespace{
