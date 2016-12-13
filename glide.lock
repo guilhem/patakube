@@ -1,5 +1,5 @@
-hash: 6545ce838caf88f04db2e9730273ba61c24aa0c77a57fe4dfb4827953b29b295
-updated: 2016-12-11T23:42:30.651874773+01:00
+hash: 43de47ad607e36d7d90d602e7caa53415d321d11092ab95ea0952b4c926058e4
+updated: 2016-12-13T15:54:53.835411785+01:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -95,9 +95,9 @@ imports:
 - name: github.com/pelletier/go-buffruneio
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml
-  version: ce7be745f09fe4ff89af8e3ea744e1deabf20ee3
+  version: 017119f7a78a0b5fc0ea39ef6be09f03acf3345d
 - name: github.com/pressly/chi
-  version: 0c0be26887fc176249c3bbd069cb9f9f3f757ed5
+  version: fc6251083a856d5093f4b96d71252c5e56d9c1b5
   subpackages:
   - middleware
 - name: github.com/PuerkitoBio/purell
@@ -115,9 +115,9 @@ imports:
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
-  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+  version: c7e63cf4530bcd3ba943729cee0efeff2ebea63f
 - name: github.com/spf13/viper
-  version: 651d9d916abc3c3d6a91a12549495caba5edffd2
+  version: 5ed0fc31f7f453625df314d8e66b9791e8d13003
 - name: github.com/ugorji/go
   version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
