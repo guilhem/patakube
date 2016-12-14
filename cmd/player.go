@@ -59,6 +59,7 @@ func init() {
 type Player struct {
 	ID string
 	Namespace string
+	ClusterUrl string
 }
 
 func player(cmd *cobra.Command, args []string) {
