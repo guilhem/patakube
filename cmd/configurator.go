@@ -83,7 +83,7 @@ func configurator(cmd *cobra.Command, args []string) {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		t, err := template.ParseFiles("templates/config.sh")
+		t, err := template.ParseFiles("/templates/config.sh")
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return

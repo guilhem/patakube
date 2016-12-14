@@ -20,13 +20,12 @@ case "$(uname -s)" in
      ;;
 esac
 
-chmod +vx ./kubectl
+chmod +x ./kubectl
 
 
 # = Configure
 export CLUSTER_NAME=k8s_patakube
 export CLUSTER_URL=http://be59165d.eu.ngrok.io/
-export KUBECONFIG=./kube_config
 export CONTEXT_NAME=patakube
 
 # create kubeconfig entry
