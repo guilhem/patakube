@@ -1,17 +1,33 @@
 #!/bin/bash
 
-# = Kubectl
-echo '---> Downloading kubctl'
+set -e
+set -u
+
+# = Vars
+
+CLUSTER_NAME=k8s_patakube
+CLUSTER_URL={{.ClusterUrl}}
+
+CONTEXT_NAME=patakube
+CONTEXT_NAMESPACE={{.Namespace}}
+
+K8S_RELEASE_URL=https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin
+
+
+# = Setup
+#
+# == Kubectl
+echo '---> Downloading kubectl'
 case "$(uname -s)" in
 
    Darwin)
      echo 'OS: Mac OS X'
-     curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl
+     curl -LO ${K8S_RELEASE_URL}/darwin/amd64/kubectl
      ;;
 
    Linux)
      echo 'OS: Linux'
-     curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+     curl -LO ${K8S_RELEASE_URL}/linux/amd64/kubectl
      ;;
 
    *)
@@ -23,10 +39,8 @@ esac
 chmod +x ./kubectl
 
 
-# = Configure
-export CLUSTER_NAME=k8s_patakube
-export CLUSTER_URL=http://be59165d.eu.ngrok.io/
-export CONTEXT_NAME=patakube
+# == Configure
+echo '---> Configuring kubectl'
 
 # create kubeconfig entry
 ./kubectl config set-cluster ${CLUSTER_NAME} \
@@ -35,9 +49,19 @@ export CONTEXT_NAME=patakube
 # create context entry
 ./kubectl config set-context ${CONTEXT_NAME} \
     --cluster=${CLUSTER_NAME} \
-    --namespace={{.Namespace}}
+    --namespace=${CONTEXT_NAMESPACE}
 
 # use the context
 ./kubectl config use-context ${CONTEXT_NAME}
 
+
+# = Run
+echo '---> Testing kubectl config:'
+
+echo '---> kubectl config view'
 ./kubectl config view
+
+echo '---> kubectl cluster-info'
+./kubectl cluster-info
+
+echo '---> Done'
