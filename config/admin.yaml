@@ -50,6 +50,7 @@ spec:
     targetPort: 8080
   selector:
     app: target
+  type: NodePort
 ---
 apiVersion: v1
 kind: ReplicationController
@@ -83,3 +84,22 @@ spec:
     targetPort: 8080
   selector:
     app: configurator
+  type: NodePort
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: configurator
+spec:
+  backend:
+    serviceName: configurator
+    servicePort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: target
+spec:
+  backend:
+    serviceName: target
+    servicePort: 80

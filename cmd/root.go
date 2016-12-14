@@ -59,6 +59,8 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Verbose logging")
+	viper.BindPFlag("verbose", RootCmd.PersistentFlags().Lookup("verbose"))
 
 	RootCmd.PersistentFlags().IntP("port", "p", 8080, "Component listen port")
 	viper.BindPFlag("port", RootCmd.PersistentFlags().Lookup("port"))

@@ -40,6 +40,7 @@ to quickly create a Cobra application.`,
 	Run: configurator,
 }
 
+
 func init() {
 	RootCmd.AddCommand(configuratorCmd)
 }
@@ -67,10 +68,14 @@ func configurator(cmd *cobra.Command, args []string) {
 
 	r.Get("/:playerID", func(w http.ResponseWriter, r *http.Request) {
 		playerID := chi.URLParam(r, "playerID")
+		p := Player{
+			ID: playerID,
+			Namespace: "player-" + playerID,
+		}
 
 		ns := v1.Namespace{
 			ObjectMeta: v1.ObjectMeta{
-				Name:   "player-" + playerID,
+				Name:   p.Namespace,
 				Labels: map[string]string{"player": "true"},
 			},
 		}
@@ -84,7 +89,7 @@ func configurator(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		if err := t.Execute(w, playerID); err != nil {
+		if err := t.Execute(w, p); err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}

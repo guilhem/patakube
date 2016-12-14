@@ -75,6 +75,9 @@ func target(cmd *cobra.Command, args []string) {
 
 		if r.Header.Get("patator") != "" {
 			accuracy = 5
+			w.Header().Set("X-Patator", "YES!")
+		} else {
+			w.Header().Set("X-Patator", "no, try `player patator` command")
 		}
 
 		_, found := c.Get(player.ID)

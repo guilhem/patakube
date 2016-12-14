@@ -58,6 +58,7 @@ func init() {
 
 type Player struct {
 	ID string
+	Namespace string
 }
 
 func player(cmd *cobra.Command, args []string) {
