@@ -64,8 +64,9 @@ func trap(cmd *cobra.Command, args []string) {
 		case <-ticker.C:
 			for _, namespace := range namespaces.Items {
 				go func(namespace string) {
-					http.Post("http://player."+namespace+".svc.cluster.local/potato", "", nil)
-					fmt.Printf("Potato to %s\n", namespace)
+					svc := "http://player." + namespace + ".svc.cluster.local/potato"
+					http.Post(svc, "", nil)
+					fmt.Printf("Potato to %s\n", svc)
 				}(namespace.ObjectMeta.Name)
 			}
 		}
