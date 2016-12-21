@@ -68,8 +68,8 @@ spec:
     spec:
       containers:
         - name: configurator
-          image: guilhem/patakube
-          args: ["configurator"]
+          image: guilhem/patakube:toto
+          args: ["configurator", "--cluster-url=http://127.0.0.1"]
           imagePullPolicy: Always
           ports:
           - containerPort: 8080
