@@ -1,1 +1,7 @@
 language: go
+
+before_install: go get -v github.com/Masterminds/glide
+install: true
+
+script:
+  - go test $(glide novendor)
