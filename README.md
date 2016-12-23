@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/guilhem/patakube.svg?branch=master)](https://travis-ci.org/guilhem/patakube)
 [![Go Report Card](https://goreportcard.com/badge/github.com/guilhem/patakube)](https://goreportcard.com/report/github.com/guilhem/patakube)
 [![](https://images.microbadger.com/badges/image/guilhem/patakube.svg)](https://microbadger.com/images/guilhem/patakube "Get your own image badge on microbadger.com")
+[![libraries.io](https://img.shields.io/librariesio/github/guilhem/patakube.svg)](https://libraries.io/github/guilhem/patakube)
 
 A simple game to discover kubernetes.
 
