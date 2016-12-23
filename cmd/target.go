@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -40,14 +41,13 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: target,
 }
+var c = cache.New(5*time.Minute, 30*time.Second)
 
 func init() {
 	RootCmd.AddCommand(targetCmd)
 }
 
 func target(cmd *cobra.Command, args []string) {
-	c := cache.New(5*time.Minute, 30*time.Second)
-
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -55,61 +55,70 @@ func target(cmd *cobra.Command, args []string) {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(c.Items())
-	})
-
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		var player Player
-
-		accuracy := 10
-		velocity := 5
-
-		if r.Body == nil {
-			http.Error(w, "Please send a request body", 412)
-			return
-		}
-		if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
+		if err := json.NewEncoder(w).Encode(c.Items()); err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
-		if r.Header.Get("patator") != "" {
-			accuracy = 5
-			w.Header().Set("X-Patator", "YES!")
-		} else {
-			w.Header().Set("X-Patator", "no, try `player patator` command")
-		}
-
-		_, found := c.Get(player.ID)
-		if found {
-			rand.Seed(time.Now().Unix())
-
-			processTime := time.Duration(velocity) * time.Second
-
-			select {
-			case <-r.Context().Done():
-				return
-
-			case <-time.After(processTime):
-				// The above channel simulates some hard work.
-			}
-
-			if rand.Intn(accuracy) != 0 {
-				http.Error(w, "Missed", 410)
-				return
-			}
-
-			if err := c.Increment(player.ID, 1); err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-		} else {
-			c.Set(player.ID, 1, cache.NoExpiration)
-		}
-
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("Hit"))
 	})
 
-	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
+	r.Post("/", postRoot)
+
+	if err := http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func postRoot(w http.ResponseWriter, r *http.Request) {
+	var p player
+
+	accuracy := 10
+	velocity := 5
+
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 412)
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	if r.Header.Get("patator") != "" {
+		accuracy = 5
+		w.Header().Set("X-Patator", "YES!")
+	} else {
+		w.Header().Set("X-Patator", "no, try `player patator` command")
+	}
+
+	_, found := c.Get(p.ID)
+	if found {
+		rand.Seed(time.Now().Unix())
+
+		processTime := time.Duration(velocity) * time.Second
+
+		select {
+		case <-r.Context().Done():
+			return
+
+		case <-time.After(processTime):
+			// The above channel simulates some hard work.
+		}
+
+		if rand.Intn(accuracy) != 0 {
+			http.Error(w, "Missed", 410)
+			return
+		}
+
+		if err := c.Increment(p.ID, 1); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	} else {
+		c.Set(p.ID, 1, cache.NoExpiration)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	if _, err := w.Write([]byte("Hit")); err != nil {
+		log.Fatal(err)
+	}
 }

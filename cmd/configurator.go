@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -44,7 +45,9 @@ func init() {
 	RootCmd.AddCommand(configuratorCmd)
 
 	configuratorCmd.Flags().String("cluster-url", "localhost:8080", "Your k8s cluster")
-	viper.BindPFlag("cluster-url", configuratorCmd.Flags().Lookup("cluster-url"))
+	if err := viper.BindPFlag("cluster-url", configuratorCmd.Flags().Lookup("cluster-url")); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func configurator(cmd *cobra.Command, args []string) {
@@ -53,8 +56,8 @@ func configurator(cmd *cobra.Command, args []string) {
 		panic(err.Error())
 	}
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
+	clientset, erre := kubernetes.NewForConfig(config)
+	if erre != nil {
 		panic(err.Error())
 	}
 
@@ -65,15 +68,18 @@ func configurator(cmd *cobra.Command, args []string) {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("please provide a player name"))
+		if _, err := w.Write([]byte("please provide a player name")); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	})
 
 	r.Get("/:playerID", func(w http.ResponseWriter, r *http.Request) {
 		playerID := chi.URLParam(r, "playerID")
-		p := Player{
+		p := player{
 			ID:         playerID,
 			Namespace:  "player-" + playerID,
-			ClusterUrl: viper.GetString("cluster-url"),
+			ClusterURL: viper.GetString("cluster-url"),
 		}
 
 		ns := v1.Namespace{
@@ -98,5 +104,7 @@ func configurator(cmd *cobra.Command, args []string) {
 		}
 	})
 
-	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
+	if err := http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r); err != nil {
+		log.Fatal(err)
+	}
 }
