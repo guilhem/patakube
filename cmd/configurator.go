@@ -40,12 +40,11 @@ to quickly create a Cobra application.`,
 	Run: configurator,
 }
 
-
 func init() {
 	RootCmd.AddCommand(configuratorCmd)
 
-  configuratorCmd.Flags().String("cluster-url", "localhost:8080", "Your k8s cluster")
-    viper.BindPFlag("cluster-url", configuratorCmd.Flags().Lookup("cluster-url"))
+	configuratorCmd.Flags().String("cluster-url", "localhost:8080", "Your k8s cluster")
+	viper.BindPFlag("cluster-url", configuratorCmd.Flags().Lookup("cluster-url"))
 }
 
 func configurator(cmd *cobra.Command, args []string) {
@@ -72,9 +71,9 @@ func configurator(cmd *cobra.Command, args []string) {
 	r.Get("/:playerID", func(w http.ResponseWriter, r *http.Request) {
 		playerID := chi.URLParam(r, "playerID")
 		p := Player{
-			ID: playerID,
-			Namespace: "player-" + playerID,
-      ClusterUrl: viper.GetString("cluster-url"),
+			ID:         playerID,
+			Namespace:  "player-" + playerID,
+			ClusterUrl: viper.GetString("cluster-url"),
 		}
 
 		ns := v1.Namespace{

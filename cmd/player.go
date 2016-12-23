@@ -57,8 +57,8 @@ func init() {
 }
 
 type Player struct {
-	ID string
-	Namespace string
+	ID         string
+	Namespace  string
 	ClusterUrl string
 }
 
