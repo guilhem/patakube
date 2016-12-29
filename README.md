@@ -6,4 +6,8 @@
 
 A simple game to discover kubernetes.
 
-This is designed for a presentation to technical people who don't know k8s.
+## Goal
+
+Who didn't try to explain kubernetes and receive back mutual incomprehension?
+_patakube_ try to be a basic use-case to present k8s for technical people.
+Pods, services, scaling, secrets... we try to make concepts real.
