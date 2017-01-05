@@ -6,6 +6,10 @@
 
 A simple game to discover kubernetes.
 
+## Status
+
+Under Heavy development. Any advice, contribution is greatly welcome.
+
 ## Goal
 
 Who didn't try to explain kubernetes and receive back mutual incomprehension?
