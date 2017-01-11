@@ -4,8 +4,11 @@ before_install:
   - go get -v github.com/Masterminds/glide
   - go get -v gopkg.in/alecthomas/gometalinter.v1
 install:
-  - gometalinter.v1 --install
+  - gometalinter.v1 --install --vendored-linters
 
 script:
   - go test $(glide novendor)
-  - gometalinter.v1 --vendor --deadline=9m $(glide novendor)
+  - gometalinter.v1 --vendor --deadline=9m --fast --disable=gotype
+
+after_success:
+  - gometalinter.v1 --vendor --deadline=9m --disable=gotype
