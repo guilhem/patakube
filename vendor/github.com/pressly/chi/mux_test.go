@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -357,6 +359,111 @@ func TestMuxNestedNotFound(t *testing.T) {
 	}
 }
 
+func TestMuxComplicatedNotFound(t *testing.T) {
+	// sub router with groups
+	sub := NewRouter()
+	sub.Route("/resource", func(r Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("private get"))
+		})
+	})
+
+	// Root router with groups
+	r := NewRouter()
+	r.Get("/auth", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("auth get"))
+	})
+	r.Route("/public", func(r Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("public get"))
+		})
+	})
+	r.Mount("/private", sub)
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("custom not-found"))
+	})
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	// check that we didn't broke correct routes
+	if _, body := testRequest(t, ts, "GET", "/auth", nil); body != "auth get" {
+		t.Fatalf(body)
+	}
+	if _, body := testRequest(t, ts, "GET", "/public", nil); body != "public get" {
+		t.Fatalf(body)
+	}
+	if _, body := testRequest(t, ts, "GET", "/private/resource", nil); body != "private get" {
+		t.Fatalf(body)
+	}
+	// check custom not-found on all levels
+	if _, body := testRequest(t, ts, "GET", "/nope", nil); body != "custom not-found" {
+		t.Fatalf(body)
+	}
+	if _, body := testRequest(t, ts, "GET", "/public/nope", nil); body != "custom not-found" {
+		t.Fatalf(body)
+	}
+	if _, body := testRequest(t, ts, "GET", "/private/nope", nil); body != "custom not-found" {
+		t.Fatalf(body)
+	}
+	if _, body := testRequest(t, ts, "GET", "/private/resource/nope", nil); body != "custom not-found" {
+		t.Fatalf(body)
+	}
+}
+
+func TestMuxWith(t *testing.T) {
+	var cmwInit1, cmwHandler1 uint64
+	var cmwInit2, cmwHandler2 uint64
+	mw1 := func(next http.Handler) http.Handler {
+		cmwInit1++
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cmwHandler1++
+			r = r.WithContext(context.WithValue(r.Context(), "inline1", "yes"))
+			next.ServeHTTP(w, r)
+		})
+	}
+	mw2 := func(next http.Handler) http.Handler {
+		cmwInit2++
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cmwHandler2++
+			r = r.WithContext(context.WithValue(r.Context(), "inline2", "yes"))
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	r := NewRouter()
+	r.Get("/hi", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("bye"))
+	})
+	r.With(mw1).With(mw2).Get("/inline", func(w http.ResponseWriter, r *http.Request) {
+		v1 := r.Context().Value("inline1").(string)
+		v2 := r.Context().Value("inline2").(string)
+		w.Write([]byte(fmt.Sprintf("inline %s %s", v1, v2)))
+	})
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	if _, body := testRequest(t, ts, "GET", "/hi", nil); body != "bye" {
+		t.Fatalf(body)
+	}
+	if _, body := testRequest(t, ts, "GET", "/inline", nil); body != "inline yes yes" {
+		t.Fatalf(body)
+	}
+	if cmwInit1 != 1 {
+		t.Fatalf("expecting cmwInit1 to be 1, got %d", cmwInit1)
+	}
+	if cmwHandler1 != 1 {
+		t.Fatalf("expecting cmwHandler1 to be 1, got %d", cmwHandler1)
+	}
+	if cmwInit2 != 1 {
+		t.Fatalf("expecting cmwInit2 to be 1, got %d", cmwInit2)
+	}
+	if cmwHandler2 != 1 {
+		t.Fatalf("expecting cmwHandler2 to be 1, got %d", cmwHandler2)
+	}
+}
+
 func TestMuxMiddlewareStack(t *testing.T) {
 	var stdmwInit, stdmwHandler uint64
 	stdmw := func(next http.Handler) http.Handler {
@@ -404,12 +511,12 @@ func TestMuxMiddlewareStack(t *testing.T) {
 
 	var handlerCount uint64
 
-	r.Get("/", Use(inCtxmw).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.With(inCtxmw).Get("/", func(w http.ResponseWriter, r *http.Request) {
 		handlerCount++
 		ctx := r.Context()
 		ctxmwHandlerCount := ctx.Value("count.ctxmwHandler").(uint64)
 		w.Write([]byte(fmt.Sprintf("inits:%d reqs:%d ctxValue:%d", ctxmwInit, handlerCount, ctxmwHandlerCount)))
-	}))
+	})
 
 	r.Get("/hi", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("wooot"))
@@ -418,9 +525,9 @@ func TestMuxMiddlewareStack(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
+	testRequest(t, ts, "GET", "/", nil)
+	testRequest(t, ts, "GET", "/", nil)
 	var body string
-	_, body = testRequest(t, ts, "GET", "/", nil)
-	_, body = testRequest(t, ts, "GET", "/", nil)
 	_, body = testRequest(t, ts, "GET", "/", nil)
 	if body != "inits:1 reqs:3 ctxValue:3" {
 		t.Fatalf("got: '%s'", body)
@@ -582,11 +689,24 @@ func TestMuxBig(t *testing.T) {
 						w.Write([]byte(s))
 					})
 				})
-				r.Mount("/webhooks", Use(func(next http.Handler) http.Handler {
+
+				// TODO: /webooks is not coming up as a subrouter here...
+				// we kind of want to wrap a Router... ?
+				// perhaps add .Router() to the middleware inline thing..
+				// and use that always.. or, can detect in that method..
+				r.Mount("/webhooks", Chain(func(next http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "hook", true)))
 					})
 				}).Handler(sr3))
+
+				// HMMMM.. only let Mount() for just a Router..?
+				// r.Mount("/webhooks", Use(...).Router(sr3))
+				// ... could this work even....?
+
+				// HMMMMMMMMMMMMMMMMMMMMMMMM...
+				// even if Mount() were to record all subhandlers mounted, we still couldn't get at the
+				// routes
 
 				r.Route("/posts", func(r Router) {
 					sr5 = r.(*Mux)
@@ -725,6 +845,7 @@ func TestMuxSubroutes(t *testing.T) {
 	defer ts.Close()
 
 	var body, expected string
+	var resp *http.Response
 
 	_, body = testRequest(t, ts, "GET", "/hubs/123/view", nil)
 	expected = "hub1"
@@ -741,6 +862,11 @@ func TestMuxSubroutes(t *testing.T) {
 	if body != expected {
 		t.Fatalf("expected:%s got:%s", expected, body)
 	}
+	resp, body = testRequest(t, ts, "GET", "/hubs/123/users/", nil)
+	expected = "404 page not found\n"
+	if resp.StatusCode != 404 || body != expected {
+		t.Fatalf("expected:%s got:%s", expected, body)
+	}
 	_, body = testRequest(t, ts, "GET", "/accounts/44", nil)
 	expected = "account1"
 	if body != expected {
@@ -755,8 +881,9 @@ func TestMuxSubroutes(t *testing.T) {
 	// Test that we're building the routingPatterns properly
 	router := r
 	req, _ := http.NewRequest("GET", "/accounts/44/hi", nil)
+
 	rctx := NewRouteContext()
-	req = req.WithContext(rctx)
+	req = req.WithContext(context.WithValue(req.Context(), RouteCtxKey, rctx))
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -794,8 +921,8 @@ func TestSingleHandler(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "/", nil)
 	rctx := NewRouteContext()
-	r = r.WithContext(rctx)
-	rctx.Params.Set("name", "joe")
+	r = r.WithContext(context.WithValue(r.Context(), RouteCtxKey, rctx))
+	rctx.URLParams.Set("name", "joe")
 
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
@@ -829,6 +956,217 @@ func TestSingleHandler(t *testing.T) {
 //
 // 	r.Mount("/", r2)
 // }
+
+func TestServeHTTPExistingContext(t *testing.T) {
+	r := NewRouter()
+	r.Get("/hi", func(w http.ResponseWriter, r *http.Request) {
+		s, _ := r.Context().Value("testCtx").(string)
+		w.Write([]byte(s))
+	})
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		s, _ := r.Context().Value("testCtx").(string)
+		w.WriteHeader(404)
+		w.Write([]byte(s))
+	})
+
+	testcases := []struct {
+		Method         string
+		Path           string
+		Ctx            context.Context
+		ExpectedStatus int
+		ExpectedBody   string
+	}{
+		{
+			Method:         "GET",
+			Path:           "/hi",
+			Ctx:            context.WithValue(context.Background(), "testCtx", "hi ctx"),
+			ExpectedStatus: 200,
+			ExpectedBody:   "hi ctx",
+		},
+		{
+			Method:         "GET",
+			Path:           "/hello",
+			Ctx:            context.WithValue(context.Background(), "testCtx", "nothing here ctx"),
+			ExpectedStatus: 404,
+			ExpectedBody:   "nothing here ctx",
+		},
+	}
+
+	for _, tc := range testcases {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(tc.Method, tc.Path, nil)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		req = req.WithContext(tc.Ctx)
+		r.ServeHTTP(resp, req)
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		if resp.Code != tc.ExpectedStatus {
+			t.Fatalf("%v != %v", tc.ExpectedStatus, resp.Code)
+		}
+		if string(b) != tc.ExpectedBody {
+			t.Fatalf("%s != %s", tc.ExpectedBody, b)
+		}
+	}
+}
+
+func TestNestedGroups(t *testing.T) {
+	handlerPrintCounter := func(w http.ResponseWriter, r *http.Request) {
+		counter, _ := r.Context().Value("counter").(int)
+		w.Write([]byte(fmt.Sprintf("%v", counter)))
+	}
+
+	mwIncreaseCounter := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			counter, _ := ctx.Value("counter").(int)
+			counter++
+			ctx = context.WithValue(ctx, "counter", counter)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+
+	// Each route represents value of its counter (number of applied middlewares).
+	r := NewRouter() // counter == 0
+	r.Get("/0", handlerPrintCounter)
+	r.Group(func(r Router) {
+		r.Use(mwIncreaseCounter) // counter == 1
+		r.Get("/1", handlerPrintCounter)
+
+		// r.Handle(GET, "/2", Chain(mwIncreaseCounter).HandlerFunc(handlerPrintCounter))
+		r.With(mwIncreaseCounter).Get("/2", handlerPrintCounter)
+
+		r.Group(func(r Router) {
+			r.Use(mwIncreaseCounter, mwIncreaseCounter) // counter == 3
+			r.Get("/3", handlerPrintCounter)
+		})
+		r.Route("/", func(r Router) {
+			r.Use(mwIncreaseCounter, mwIncreaseCounter) // counter == 3
+
+			// r.Handle(GET, "/4", Chain(mwIncreaseCounter).HandlerFunc(handlerPrintCounter))
+			r.With(mwIncreaseCounter).Get("/4", handlerPrintCounter)
+
+			r.Group(func(r Router) {
+				r.Use(mwIncreaseCounter, mwIncreaseCounter) // counter == 5
+				r.Get("/5", handlerPrintCounter)
+				// r.Handle(GET, "/6", Chain(mwIncreaseCounter).HandlerFunc(handlerPrintCounter))
+				r.With(mwIncreaseCounter).Get("/6", handlerPrintCounter)
+
+			})
+		})
+	})
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	for _, route := range []string{"0", "1", "2", "3", "4", "5", "6"} {
+		if _, body := testRequest(t, ts, "GET", "/"+route, nil); body != route {
+			t.Errorf("expected %v, got %v", route, body)
+		}
+	}
+}
+
+func TestMiddlewarePanicOnLateUse(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello\n"))
+	}
+
+	mw := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic()")
+		}
+	}()
+
+	r := NewRouter()
+	r.Get("/", handler)
+	r.Use(mw) // Too late to apply middleware, we're expecting panic().
+}
+
+func TestMountingExistingPath(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {}
+
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic()")
+		}
+	}()
+
+	r := NewRouter()
+	r.Get("/", handler)
+	r.Mount("/hi", http.HandlerFunc(handler))
+	r.Mount("/hi", http.HandlerFunc(handler))
+}
+
+func TestMountingSimilarPattern(t *testing.T) {
+	r := NewRouter()
+	r.Get("/hi", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("bye"))
+	})
+
+	r2 := NewRouter()
+	r2.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("foobar"))
+	})
+
+	r3 := NewRouter()
+	r3.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("foo"))
+	})
+
+	r.Mount("/foobar", r2)
+	r.Mount("/foo", r3)
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	if _, body := testRequest(t, ts, "GET", "/hi", nil); body != "bye" {
+		t.Fatalf(body)
+	}
+}
+
+func TestMuxContextIsThreadSafe(t *testing.T) {
+	router := NewRouter()
+	router.Get("/:id", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Millisecond)
+		defer cancel()
+
+		<-ctx.Done()
+	})
+
+	wg := sync.WaitGroup{}
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 10000; j++ {
+				w := httptest.NewRecorder()
+				r, err := http.NewRequest("GET", "/ok", nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ctx, cancel := context.WithCancel(r.Context())
+				r = r.WithContext(ctx)
+
+				go func() {
+					cancel()
+				}()
+				router.ServeHTTP(w, r)
+			}
+		}()
+	}
+	wg.Wait()
+}
 
 func TestMuxFileServer(t *testing.T) {
 	fixtures := map[string]http.File{
@@ -909,15 +1247,35 @@ func TestMuxFileServer(t *testing.T) {
 	// }
 }
 
-func urlParams(ctx context.Context) map[string]string {
-	if rctx := RouteContext(ctx); rctx != nil {
-		m := make(map[string]string, 0)
-		for _, p := range rctx.Params {
-			m[p.Key] = p.Value
+func TestServerBaseContext(t *testing.T) {
+	r := NewRouter()
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		baseYes := r.Context().Value("base").(string)
+		if _, ok := r.Context().Value(http.ServerContextKey).(*http.Server); !ok {
+			panic("missing server context")
 		}
-		return m
+		if _, ok := r.Context().Value(http.LocalAddrContextKey).(net.Addr); !ok {
+			panic("missing local addr context")
+		}
+		w.Write([]byte(baseYes))
+	})
+
+	// Setup http Server with a base context
+	ctx := context.WithValue(context.Background(), "base", "yes")
+	ts := httptest.NewServer(ServerBaseContext(r, ctx))
+	defer ts.Close()
+
+	if _, body := testRequest(t, ts, "GET", "/", nil); body != "yes" {
+		t.Fatalf(body)
 	}
-	return nil
+}
+
+func urlParams(rctx *Context) map[string]string {
+	m := make(map[string]string, 0)
+	for _, p := range rctx.URLParams {
+		m[p.Key] = p.Value
+	}
+	return m
 }
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {

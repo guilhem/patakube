@@ -1,5 +1,5 @@
-hash: 43de47ad607e36d7d90d602e7caa53415d321d11092ab95ea0952b4c926058e4
-updated: 2016-12-13T15:54:53.835411785+01:00
+hash: e38eea3570cd41971ac77abc1423a0c18014386af41726cf4e399a28a1e7281f
+updated: 2017-01-11T23:33:45.543500481+01:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -62,7 +62,7 @@ imports:
 - name: github.com/google/gofuzz
   version: bbcb9da2d746f8bdbd6a936686a0a6067ada0ec5
 - name: github.com/hashicorp/hcl
-  version: 37ab263305aaeb501a60eb16863e808d426e37f2
+  version: eb6f65b2d77ed5078887f960ff570fbddbbeb49d
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -95,9 +95,9 @@ imports:
 - name: github.com/pelletier/go-buffruneio
   version: df1e16fde7fc330a0ca68167c23bf7ed6ac31d6d
 - name: github.com/pelletier/go-toml
-  version: 017119f7a78a0b5fc0ea39ef6be09f03acf3345d
+  version: 439fbba1f887c286024370cb4f281ba815c4c7d7
 - name: github.com/pressly/chi
-  version: fc6251083a856d5093f4b96d71252c5e56d9c1b5
+  version: 54f435d539226571eab1987ed862b1c0fdfdc892
   subpackages:
   - middleware
 - name: github.com/PuerkitoBio/purell
@@ -105,17 +105,17 @@ imports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/spf13/afero
-  version: 2f30b2a92c0e5700bcfe4715891adb1f2a7a406d
+  version: 72b31426848c6ef12a7a8e216708cb0d1530f074
   subpackages:
   - mem
 - name: github.com/spf13/cast
-  version: 24b6558033ffe202bf42f0f3b870dcc798dd2ba8
+  version: 56a7ecbeb18dde53c6db4bd96b541fd9741b8d44
 - name: github.com/spf13/cobra
-  version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
+  version: 1dd5ff2e11b6dca62fdcb275eb804b94607d8b06
 - name: github.com/spf13/jwalterweatherman
-  version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
+  version: fa7ca7e836cf3a8bb4ebf799f472c12d7e903d66
 - name: github.com/spf13/pflag
-  version: c7e63cf4530bcd3ba943729cee0efeff2ebea63f
+  version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
 - name: github.com/spf13/viper
   version: 5ed0fc31f7f453625df314d8e66b9791e8d13003
 - name: github.com/ugorji/go

@@ -22,6 +22,7 @@ const (
 	mPOST
 	mPUT
 	mTRACE
+	mSTUB
 
 	mALL methodTyp = mCONNECT | mDELETE | mGET | mHEAD | mOPTIONS |
 		mPATCH | mPOST | mPUT | mTRACE
@@ -63,6 +64,9 @@ type node struct {
 
 	// HTTP handler on the leaf node
 	handlers methodHandlers
+
+	// chi subroutes on the leaf node
+	subroutes Routes
 
 	// Child nodes should be stored in-order for iteration,
 	// in groups of the node type.
@@ -168,15 +172,27 @@ func (n *node) InsertRoute(method methodTyp, pattern string, handler http.Handle
 }
 
 func (n *node) findPattern(pattern string) *node {
-	for {
-		if len(pattern) == 0 {
-			return n
+	nn := n
+	for _, nds := range nn.children {
+		if len(nds) == 0 {
+			continue
 		}
-		n = n.getEdge(pattern[0])
+
+		n = nn.getEdge(pattern[0])
 		if n == nil {
-			return nil // nothing
+			continue
 		}
-		pattern = pattern[len(n.prefix):]
+
+		idx := n.longestPrefix(pattern, n.prefix)
+		xpattern := pattern[idx:]
+
+		if len(xpattern) == 0 {
+			return n
+		} else if xpattern[0] == '/' && idx < len(n.prefix) {
+			continue
+		}
+
+		return n.findPattern(xpattern)
 	}
 	return nil
 }
@@ -352,9 +368,9 @@ func (n *node) findRoute(rctx *Context, path string) *node {
 			}
 
 			if xn.typ == ntCatchAll {
-				rctx.Params.Add("*", xsearch)
+				rctx.URLParams.Add("*", xsearch)
 			} else {
-				rctx.Params.Add(xn.prefix[1:], xsearch[:p])
+				rctx.URLParams.Add(xn.prefix[1:], xsearch[:p])
 			}
 
 			xsearch = xsearch[p:]
@@ -381,9 +397,9 @@ func (n *node) findRoute(rctx *Context, path string) *node {
 		// Did not found final handler, let's remove the param here if it was set
 		if xn.typ > ntStatic {
 			if xn.typ == ntCatchAll {
-				rctx.Params.Del("*")
+				rctx.URLParams.Del("*")
 			} else {
-				rctx.Params.Del(xn.prefix[1:])
+				rctx.URLParams.Del(xn.prefix[1:])
 			}
 		}
 	}
@@ -411,7 +427,13 @@ func (n *node) setHandler(method methodTyp, handler http.Handler) {
 	if n.handlers == nil {
 		n.handlers = make(methodHandlers, 0)
 	}
-	if method == mALL {
+	if method&mSTUB == mSTUB {
+		n.handlers[mSTUB] = handler
+	} else {
+		n.handlers[mSTUB] = nil
+	}
+	if method&mALL == mALL {
+		n.handlers[mALL] = handler
 		for _, m := range methodMap {
 			n.handlers[m] = handler
 		}
@@ -429,25 +451,53 @@ func (n *node) isEmpty() bool {
 	return true
 }
 
-// Walk is used to walk the tree
-func (t *node) walk(fn walkFn) {
-	t.recursiveWalk(t.prefix, t, fn)
+func (n *node) routes() []Route {
+	rts := []Route{}
+
+	n.walkRoutes(n.prefix, n, func(pattern string, handlers methodHandlers, subroutes Routes) bool {
+		if handlers[mSTUB] != nil && subroutes == nil {
+			return false
+		}
+
+		if subroutes != nil && len(pattern) > 2 {
+			pattern = pattern[:len(pattern)-2]
+		}
+
+		var hs = make(map[string]http.Handler, 0)
+		if handlers[mALL] != nil {
+			hs["*"] = handlers[mALL]
+		}
+		for mt, h := range handlers {
+			if h == nil {
+				continue
+			}
+			m := methodTypString(mt)
+			if m == "" {
+				continue
+			}
+			hs[m] = h
+		}
+
+		rt := Route{pattern, hs, subroutes}
+		rts = append(rts, rt)
+		return false
+	})
+
+	return rts
 }
 
-// recursiveWalk is used to do a pre-order walk of a node
-// recursively. Returns true if the walk should be aborted
-func (t *node) recursiveWalk(pattern string, n *node, fn walkFn) bool {
-	pattern += n.prefix
+func (n *node) walkRoutes(pattern string, nd *node, fn walkFn) bool {
+	pattern = nd.pattern
 
 	// Visit the leaf values if any
-	if n.handlers != nil && fn(pattern, n.handlers) {
+	if (nd.handlers != nil || nd.subroutes != nil) && fn(pattern, nd.handlers, nd.subroutes) {
 		return true
 	}
 
 	// Recurse on the children
-	for _, nds := range n.children {
-		for _, n := range nds {
-			if t.recursiveWalk(pattern, n, fn) {
+	for _, nds := range nd.children {
+		for _, nd := range nds {
+			if n.walkRoutes(pattern, nd, fn) {
 				return true
 			}
 		}
@@ -455,12 +505,20 @@ func (t *node) recursiveWalk(pattern string, n *node, fn walkFn) bool {
 	return false
 }
 
+func methodTypString(method methodTyp) string {
+	for s, t := range methodMap {
+		if method == t {
+			return s
+		}
+	}
+	return ""
+}
+
+type walkFn func(pattern string, handlers methodHandlers, subroutes Routes) bool
+
 // methodHandlers is a mapping of http method constants to handlers
 // for a given route.
 type methodHandlers map[methodTyp]http.Handler
-
-// walkFn is used when walking the tree.
-type walkFn func(path string, handlers methodHandlers) bool
 
 type nodes []*node
 
@@ -469,3 +527,9 @@ func (ns nodes) Len() int           { return len(ns) }
 func (ns nodes) Less(i, j int) bool { return ns[i].label < ns[j].label }
 func (ns nodes) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns nodes) Sort()              { sort.Sort(ns) }
+
+type Route struct {
+	Pattern   string
+	Handlers  map[string]http.Handler
+	SubRoutes Routes
+}
