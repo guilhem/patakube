@@ -6,9 +6,12 @@ before_install:
 install:
   - gometalinter.v1 --install --vendored-linters
 
-script:
-  - go test $(glide novendor)
-  - gometalinter.v1 --vendor --deadline=9m --fast --disable=gotype
-
-after_success:
-  - gometalinter.v1 --vendor --deadline=9m --disable=gotype
+matrix:
+  fast_finish: true
+  include:
+    - env: NAME="go test"
+      script: go test $(glide novendor)
+    - env: NAME="Fast Linting"
+      script: gometalinter.v1 --vendor --deadline=9m --fast --disable=gotype
+    - env: NAME="Linting"
+      script: gometalinter.v1 --vendor --deadline=9m --disable=gotype
