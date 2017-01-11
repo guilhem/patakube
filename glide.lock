@@ -1,5 +1,5 @@
-hash: e38eea3570cd41971ac77abc1423a0c18014386af41726cf4e399a28a1e7281f
-updated: 2017-01-11T23:33:45.543500481+01:00
+hash: 9d41e12e6c1a2415a99186f034969b5057bf9f6becbd4049171249d17c12c1ec
+updated: 2017-01-11T23:44:46.931483941+01:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -76,8 +76,6 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jonboulle/clockwork
   version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
-- name: github.com/juju/ratelimit
-  version: 77ed1c8a01217656d2080ad51981f6e99adaa177
 - name: github.com/magiconair/properties
   version: 9c47895dc1ce54302908ab8a43385d1f5df2c11c
 - name: github.com/mailru/easyjson
@@ -172,19 +170,20 @@ imports:
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 - name: k8s.io/client-go
-  version: b22087a53becae45931ed72d5e0f12e0031d771a
+  version: d81cb85237595f720d83eda492bae8f6162fc5c0
   subpackages:
   - discovery
   - kubernetes
-  - kubernetes/typed/apps/v1alpha1
+  - kubernetes/typed/apps/v1beta1
   - kubernetes/typed/authentication/v1beta1
   - kubernetes/typed/authorization/v1beta1
   - kubernetes/typed/autoscaling/v1
   - kubernetes/typed/batch/v1
+  - kubernetes/typed/batch/v2alpha1
   - kubernetes/typed/certificates/v1alpha1
   - kubernetes/typed/core/v1
   - kubernetes/typed/extensions/v1beta1
-  - kubernetes/typed/policy/v1alpha1
+  - kubernetes/typed/policy/v1beta1
   - kubernetes/typed/rbac/v1alpha1
   - kubernetes/typed/storage/v1beta1
   - pkg/api
@@ -201,7 +200,7 @@ imports:
   - pkg/apimachinery/registered
   - pkg/apis/apps
   - pkg/apis/apps/install
-  - pkg/apis/apps/v1alpha1
+  - pkg/apis/apps/v1beta1
   - pkg/apis/authentication
   - pkg/apis/authentication/install
   - pkg/apis/authentication/v1beta1
@@ -223,7 +222,7 @@ imports:
   - pkg/apis/extensions/v1beta1
   - pkg/apis/policy
   - pkg/apis/policy/install
-  - pkg/apis/policy/v1alpha1
+  - pkg/apis/policy/v1beta1
   - pkg/apis/rbac
   - pkg/apis/rbac/install
   - pkg/apis/rbac/v1alpha1
@@ -245,6 +244,7 @@ imports:
   - pkg/runtime/serializer/versioning
   - pkg/selection
   - pkg/third_party/forked/golang/reflect
+  - pkg/third_party/forked/golang/template
   - pkg/types
   - pkg/util
   - pkg/util/cert
@@ -255,10 +255,12 @@ imports:
   - pkg/util/integer
   - pkg/util/intstr
   - pkg/util/json
+  - pkg/util/jsonpath
   - pkg/util/labels
   - pkg/util/net
   - pkg/util/parsers
   - pkg/util/rand
+  - pkg/util/ratelimit
   - pkg/util/runtime
   - pkg/util/sets
   - pkg/util/uuid
