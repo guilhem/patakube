@@ -17,6 +17,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -40,30 +41,36 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: player,
+	Run: playerRun,
 }
 
 func init() {
 	RootCmd.AddCommand(playerCmd)
 
 	playerCmd.PersistentFlags().String("target", "target.patakube.svc.cluster.local", "target to shoot")
-	viper.BindPFlag("target", playerCmd.PersistentFlags().Lookup("target"))
+	if err := viper.BindPFlag("target", playerCmd.PersistentFlags().Lookup("target")); err != nil {
+		log.Fatal(err)
+	}
 
 	playerCmd.Flags().Bool("patator", false, "Use a patator")
-	viper.BindPFlag("patator", playerCmd.Flags().Lookup("patator"))
+	if err := viper.BindPFlag("patator", playerCmd.Flags().Lookup("patator")); err != nil {
+		log.Fatal(err)
+	}
 
 	playerCmd.Flags().Int("patator-port", 8081, "Port to reach patator")
-	viper.BindPFlag("patator-port", playerCmd.Flags().Lookup("patator-port"))
+	if err := viper.BindPFlag("patator-port", playerCmd.Flags().Lookup("patator-port")); err != nil {
+		log.Fatal(err)
+	}
 }
 
-type Player struct {
+type player struct {
 	ID         string
 	Namespace  string
-	ClusterUrl string
+	ClusterURL string
 }
 
-func player(cmd *cobra.Command, args []string) {
-	player := Player{ID: os.Getenv("NAME")}
+func playerRun(cmd *cobra.Command, args []string) {
+	p := player{ID: os.Getenv("NAME")}
 
 	r := chi.NewRouter()
 
@@ -72,7 +79,10 @@ func player(cmd *cobra.Command, args []string) {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf("Player %s \n", player.ID)))
+		if _, err := w.Write([]byte(fmt.Sprintf("Player %s \n", p.ID))); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	})
 
 	// Slow handlers/operations.
@@ -85,7 +95,10 @@ func player(cmd *cobra.Command, args []string) {
 
 		r.Post("/potato", func(w http.ResponseWriter, r *http.Request) {
 			b := new(bytes.Buffer)
-			json.NewEncoder(b).Encode(player)
+			if err := json.NewEncoder(b).Encode(p); err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
 			target := "http://" + viper.GetString("target")
 			if viper.GetBool("patator") {
 				target = "http://localhost:" + strconv.Itoa(viper.GetInt("patator-port"))
@@ -102,9 +115,14 @@ func player(cmd *cobra.Command, args []string) {
 			}
 
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte("Hit"))
+			if _, err := w.Write([]byte("Hit")); err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
 		})
 	})
 
-	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
+	if err := http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r); err != nil {
+		log.Fatal(err)
+	}
 }

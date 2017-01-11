@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -60,10 +61,14 @@ func init() {
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Verbose logging")
-	viper.BindPFlag("verbose", RootCmd.PersistentFlags().Lookup("verbose"))
+	if err := viper.BindPFlag("verbose", RootCmd.PersistentFlags().Lookup("verbose")); err != nil {
+		log.Fatal(err)
+	}
 
 	RootCmd.PersistentFlags().IntP("port", "p", 8080, "Component listen port")
-	viper.BindPFlag("port", RootCmd.PersistentFlags().Lookup("port"))
+	if err := viper.BindPFlag("port", RootCmd.PersistentFlags().Lookup("port")); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.

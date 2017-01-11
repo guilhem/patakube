@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -55,6 +56,10 @@ func patator(cmd *cobra.Command, args []string) {
 		w.Header().Set("patator", "true")
 
 		req, err := http.NewRequest("POST", "http://"+viper.GetString("target"), r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 		req.Header.Set("patator", "true")
 		req.Header.Set("Content-Type", "application/json")
 
@@ -63,7 +68,11 @@ func patator(cmd *cobra.Command, args []string) {
 		if err != nil {
 			panic(err)
 		}
-		defer res.Body.Close()
+		defer func() {
+			if e := res.Body.Close(); e != nil {
+				log.Fatal(e)
+			}
+		}()
 
 		responseBody, err := ioutil.ReadAll(res.Body)
 		if err != nil {
@@ -71,8 +80,12 @@ func patator(cmd *cobra.Command, args []string) {
 		}
 
 		w.WriteHeader(res.StatusCode)
-		w.Write(responseBody)
+		if _, err := w.Write(responseBody); err != nil {
+			log.Fatal(err)
+		}
 	})
 
-	http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r)
+	if err := http.ListenAndServe(":"+strconv.Itoa(viper.GetInt("port")), r); err != nil {
+		log.Fatal(err)
+	}
 }

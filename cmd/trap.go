@@ -59,16 +59,16 @@ func trap(cmd *cobra.Command, args []string) {
 	}
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			for _, namespace := range namespaces.Items {
-				go func(namespace string) {
-					svc := "http://player." + namespace + ".svc.cluster.local/potato"
-					http.Post(svc, "", nil)
-					fmt.Printf("Potato to %s\n", svc)
-				}(namespace.ObjectMeta.Name)
-			}
+	for range ticker.C {
+		for _, namespace := range namespaces.Items {
+			go func(namespace string) {
+				svc := "http://player." + namespace + ".svc.cluster.local/potato"
+				if _, err := http.Post(svc, "", nil); err != nil {
+					fmt.Println("Fail to send to", svc)
+				} else {
+					fmt.Println("Potato to", svc)
+				}
+			}(namespace.ObjectMeta.Name)
 		}
 	}
 }
